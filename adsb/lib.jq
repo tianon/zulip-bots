@@ -54,34 +54,39 @@ def aircraft(locations; tar1090s):
 	| .text = {
 		flight: $flight,
 		type: (
-			if $flight | startswith("JANET") then "🛸"
+			# https://github.com/wiedehopf/tar1090/blob/abbc708f719b5c5e3b1ecd786baf8bdbf28f137b/html/markers.js#L1324-L1325
+			if $alt == "ground" and IN(.type; "adsb_icao_nt", "tisb_other", "tisb_trackfile") then "▪️"
 
-			elif (.ownOp // "") | contains("POLICE") then "🚔"
+			# TODO consider adjusting the config to allow a different "radius" per category?  that way balloon and glider could have a wider radius, for example (because they're interesting/unique even further out)
+			# technically this is already possible, as the "config" functions receive the airplane object itself as input
 
-			elif $alt == "ground" and IN(.type; "adsb_icao_nt", "tisb_other", "tisb_trackfile") then "▪️"
+			else
+				{
+					# https://github.com/wiedehopf/tar1090/blob/abbc708f719b5c5e3b1ecd786baf8bdbf28f137b/html/markers.js#L1217-L1247
+					# https://www.adsbexchange.com/emitter-category-ads-b-do-260b-2-2-3-2-5-2/
+					"A7": "🚁", # "helicopter"
+					"B1": "🪂", # "glider"
+					"B2": "🎈", # "balloon"
+					"B3": "🪂", # parachutist / skydiver
+					"B4": "🪂", # ultralight / hang-glider / paraglider
+					"B6": "🎮", # unmanned aerial vehicle
+					"B7": "🛰", # space / trans-atmospheric vehicle
+					"C1": "🚑", # surface vehicle – emergency vehicle
+					"C2": "🧳", # "ground_service"
+				}[.category // ""]
 
-			else ({
-				# https://github.com/wiedehopf/tar1090/blob/abbc708f719b5c5e3b1ecd786baf8bdbf28f137b/html/markers.js#L734
+				// "🛩" # if we don't know, just assume it's a plane
+			end
 
-				"🎈": [ "BALL" ],
+			+ if $flight | startswith("JANET") then
+				"🛸"
 
-				"🚁": [ "H60", "S92", "NH90", "AS32", "AS3B", "PUMA", "TIGR", "MI24", "AS65", "S76", "GAZL", "AS50", "AS55", "ALO2", "ALO3", "R22", "R44", "R66", "EC55", "A169", "H160", "A139", "EC75", "A189", "A149", "S61", "S61R", "EC25", "EH10", "H53", "H53S", "U2", "C2", "E2", "H47", "H46", "HAWK", "GYRO" ],
+			elif (.ownOp // "") | contains("POLICE") then
+				"🚓"
 
-				"🪂": [ "GLID", "S6", "S10S", "S12", "S12S", "ARCE", "ARCP", "DISC", "DUOD", "JANU", "NIMB", "QINT", "VENT", "VNTE", "A20J", "A32E", "A32P", "A33E", "A33P", "A34E", "AS14", "AS16", "AS20", "AS21", "AS22", "AS24", "AS25", "AS26", "AS28", "AS29", "AS30", "AS31", "DG80", "DG1T", "LS10", "LS9", "LS8", "TS1J", "PK20", "LK17", "LK19", "LK20" ],
+			else "" end
 
-			} | with_entries({ key: .value[], value: .key }))[.t // ""]
-
-			// {
-				# https://github.com/wiedehopf/tar1090/blob/abbc708f719b5c5e3b1ecd786baf8bdbf28f137b/html/markers.js#L1217-L1247
-				"A7": "🚁", # "helicopter"
-				"B1": "🪂", # "glider"
-				"B2": "🎈", # "balloon"
-				"C2": "🧳", # "ground_service"
-				# TODO do all the ".t" values above have these categories set appropriately? ie, could I rely just on category for all these instead of maintaining those lists?
-			}[.category // ""]
-
-			// "🛩" # if we don't know, just assume it's a plane
-		end),
+		),
 		locations: (
 			.locations
 			| [ "⬆️", "↗️", "➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️" ] as $bearings # 8 points on a compass, in "[0-360)" order
