@@ -30,6 +30,7 @@ while true; do
 	eval "targets=( $targets )"
 
 	# TODO save "hex" above so we can query planespotters for all of them and drop a bunch of "[📷](.photos[0].thumbnail_large)" in a row together at the end (which Zulip will then render all in a row)
+	# https://api.planespotters.net/pub/photos/hex/<icao>
 
 	for target in "${targets[@]}"; do
 		jq <<<"$target" --raw-output '
