@@ -15,6 +15,7 @@ set +o allexport
 [ -n "${ZULIP_BOT:+secret}" ] # "$ZULIP_BOT_EMAIL:xxxxxtokenxxxxx"
 
 [ -s "$READSB_AIRCRAFT_JSON" ] # /path/to/aircraft.json (https://github.com/wiedehopf/readsb/blob/7b78f77f08747aa50d61c0ffd83f02e3278de5ca/README-json.md#aircraftjson-and---json-port)
+# TODO support optional URL instead of file, so this could be /re-api/?circle= or /data/aircraft.json URLs ?
 
 while true; do
 	# easy ways to test:
