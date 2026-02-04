@@ -6,9 +6,16 @@ include "date"; # "def localday"
 # 		order: "1234", # Monday person 1, Tuesday person 2, Wednesday person 3, Thursday person 4, Friday person 1, Monday person 2, etc (see illustration below)
 # 	},
 # 	days: 5, # how many days from Monday should be included (likely should be 5, 6, or 7 depending on whether you want to include the weekend in the rotation)
+# 	exceptions: { # optional "exceptions" to the pattern (especially useful for swapping birthdays, for example)
+# 		#"2025-10-28 2": "3",
+# 		#"2025-10-29 3": "2",
+# 	},
 # }
 # $date: unix timestamp (now)
 # yourDay({ ... }; now + range(30) * 24 * 60 * 60) - returns a stream of the next 30 days of "it's your day" including today
+#
+# jq -n 'include "config"; include "your-day"; now + range(30) * 24 * 60 * 60 | strftime("%Y-%m-%d ") + yourDay(yourDayData(.); .)'
+#
 def yourDay($data; $date):
 	# using the example data above,
 	# on our "anchor week", the order was "1 2 3 4 1 _ _"
@@ -34,10 +41,15 @@ def yourDay($data; $date):
 	| if $anchorDay != 0 then error("math isn't math; \($anchorDay) should be 0") else . end
 	| ($today | strftime("%u") | tonumber - 1) as $todayDay
 
-	| if $todayDay >= $data.days then "" else
-		$data.anchor.order
-		| split("")
-		| .[ ( $todayDay + ($data.days * $weeksSinceAnchor) ) % length ]
-	end
+	| (
+		if $todayDay >= $data.days then "" else
+			$data.anchor.order
+			| split("")
+			| .[ ( $todayDay + ($data.days * $weeksSinceAnchor) ) % length ]
+		end
+	) as $whoseDay
+
+	| ($data.exceptions // {})[($today | strftime("%Y-%m-%d ")) + $whoseDay]
+	| if . then . else $whoseDay end
 ;
 def yourDay($data): yourDay($data; now);
