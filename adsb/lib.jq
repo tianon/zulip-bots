@@ -34,8 +34,12 @@ def aircraft(locations; tar1090s):
 		| map_values(
 			{ self: ., $other }
 			| { pos: .self, dist: haversine_distance, bear: bearing }
+			# somehow, I saw a "null" dist once -- it was a fluke (and probably bad data), but we can avoid that by ignoring it
+			# (we should probably dig in more, but I don't have the original data anymore and this project really isn't that serious)
+			| select(.dist)
 		)
 	)
+	| select(.locations | length > 0)
 
 	| .urls = (
 		uriencode({
