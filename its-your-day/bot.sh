@@ -12,18 +12,36 @@ set -Eeuo pipefail
 : "${ZULIP_TARGET_TOPIC:=}" # optional, assuming "general chat" is enabled on your instance 😄
 
 message="$(jq --null-input --raw-output -L. '
-	include "your-day";
 	include "config";
-	now as $date # TODO some way to override this for testing
+	include "your-day";
+	(env.SOURCE_DATE_EPOCH // now | tonumber) as $date
 	| yourDay(yourDayData($date); $date)
-	| if . == "" then
-		empty
-	else . end
-	| yourDayText(.)
+	| if . != "" then
+		yourDayText(.)
+	else
+		# when it is not an assigned day, show a compressed preview including the next 7 days beyond today
+		# | Su | Mo | Tu | We | Th | Fr | Sa | Su |
+		# |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+		# | | 1 | 2 | 3 | 4 | 5 | 1 | |
+		reduce ($date + range(8) * 24 * 60 * 60) as $future ([ "|", "|", "|" ];
+			map(. += " ")
+			| .[0] += ($future | strftime("%a")[0:2])
+			| .[1] += ":-:"
+			| .[2] += yourDay(yourDayData($future); $future)
+			| map(. += " |")
+		)
+		| join("\n")
+	end
 ')"
 
 if [ -z "$message" ]; then
-	# if it's not someone's day, no notification / do nothing!
+	# if there's no message, do nothing!
+	exit
+fi
+
+# SOURCE_DATE_EPOCH="$(date --date '2026-03-01' +%s)" DRY_RUN=1 ZULIP_SITE=... ZULIP_BOT=... ZULIP_TARGET_CHANNEL=... ./bot.sh
+if [ -n "${DRY_RUN:-}" ]; then
+	echo "$message"
 	exit
 fi
 
