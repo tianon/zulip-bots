@@ -5,12 +5,6 @@ set -Eeuo pipefail
 
 [ -s 'your-day.jq' ] # make sure we're in the right directory
 
-: "${ZULIP_SITE:?missing; set to the base url of your Zulip instance, such as https://foobar.zulipchat.com}"
-: "${ZULIP_BOT:?missing; set to the username:token of your bot user, such as foobar-bot@foobar.zulipchat.com:ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
-
-: "${ZULIP_TARGET_CHANNEL:?missing; set to the channel the message should be delivered to, such as foobar}"
-: "${ZULIP_TARGET_TOPIC:=}" # optional, assuming "general chat" is enabled on your instance 😄
-
 message="$(jq --null-input --raw-output -L. '
 	include "config";
 	include "your-day";
@@ -39,13 +33,18 @@ if [ -z "$message" ]; then
 	exit
 fi
 
-# SOURCE_DATE_EPOCH="$(date --date '2026-03-01' +%s)" DRY_RUN=1 ZULIP_SITE=... ZULIP_BOT=... ZULIP_TARGET_CHANNEL=... ./bot.sh
+# SOURCE_DATE_EPOCH="$(date --date '2026-03-01' +%s)" DRY_RUN=1 ./bot.sh
 if [ -n "${DRY_RUN:-}" ]; then
 	echo "$message"
 	exit
 fi
 
-# TODO some way to dry-run for testing
+: "${ZULIP_SITE:?missing; set to the base url of your Zulip instance, such as https://foobar.zulipchat.com}"
+: "${ZULIP_BOT:?missing; set to the username:token of your bot user, such as foobar-bot@foobar.zulipchat.com:ABCDEFGHIJKLMNOPQRSTUVWXYZ}"
+
+: "${ZULIP_TARGET_CHANNEL:?missing; set to the channel the message should be delivered to, such as foobar}"
+: "${ZULIP_TARGET_TOPIC:=}" # optional, assuming "general chat" is enabled on your instance 😄
+
 curl -fsSX POST "$ZULIP_SITE/api/v1/messages" \
 	-u "$ZULIP_BOT" \
 	--data-urlencode 'type=channel' \
