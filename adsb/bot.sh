@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# TODO error handling
 [ -s config.jq ]
-[ -s lib.jq ]
+[ -s secret.sh ]
+
+dir="$(dirname "$BASH_SOURCE")"
+dir="$(readlink -ve "$dir")"
+
+[ -s "$dir/lib.jq" ]
 
 # TODO config.jq is already housing some pretty sensitive data (lat, lon) -- maybe the Zulip login info can/should live in there too, and aircraft.json could be passed as an argument to this script or something?  then we could notify to more than one Zulip instance from a single bot instance (by making the site/login details part of a "target", or at least by making the site part of it and perhaps still storing the actual login tokens elsewhere in an even less heavily cross-imported file? so they don't end up in our "munged" data?)
 
@@ -21,8 +27,8 @@ while true; do
 	# easy ways to test:
 	#  ADSB_NEAR_METERS_OVERRIDE=1000000 jq 'include "./lib"; include "./config"; aircraft(locations; tar1090s) | filter_targets(targets)' /path/to/aircraft.json
 	#  ADSB_NEAR_METERS_OVERRIDE=1000000 jq 'include "./lib"; include "./config"; zulip_targets(locations; tar1090s; targets)' /path/to/aircraft.json
-	targets="$(jq --raw-output '
-		include "./lib";
+	targets="$(jq --raw-output -L"$dir" '
+		include "lib";
 		include "./config";
 		zulip_targets(locations; tar1090s; targets)
 		| map(@json | @sh)
@@ -42,7 +48,7 @@ while true; do
 			""
 		'
 
-		search="$(jq <<<"$target" --raw-output 'include "./uri"; uriencode({
+		search="$(jq <<<"$target" --raw-output -L"$dir" 'include "uri"; uriencode({
 			# https://zulip.com/api/get-messages
 			narrow: [
 				# https://zulip.com/api/construct-narrow
@@ -65,13 +71,13 @@ while true; do
 		)" && [ -n "$id" ]; then
 			url="$ZULIP_SITE/api/v1/messages/$id"
 			method='PATCH'
-			data="$(jq <<<"$target" --raw-output 'include "./uri"; uriencode({
+			data="$(jq <<<"$target" --raw-output -L"$dir" 'include "uri"; uriencode({
 				content: .message,
 			})')"
 		else
 			url="$ZULIP_SITE/api/v1/messages"
 			method='POST'
-			data="$(jq <<<"$target" --raw-output 'include "./uri"; uriencode({
+			data="$(jq <<<"$target" --raw-output -L"$dir" 'include "uri"; uriencode({
 				type: "channel",
 				to: .channel,
 				topic: .topic,
