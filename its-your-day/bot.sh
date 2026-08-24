@@ -8,6 +8,7 @@ set -Eeuo pipefail
 message="$(jq --null-input --raw-output -L. '
 	include "config";
 	include "your-day";
+	include "date";
 	(env.SOURCE_DATE_EPOCH // now | tonumber) as $date
 	| yourDay(yourDayData($date); $date)
 	| if . != "" then
@@ -19,7 +20,7 @@ message="$(jq --null-input --raw-output -L. '
 		# | | 1 | 2 | 3 | 4 | 5 | 1 | |
 		reduce ($date + range(8) * 24 * 60 * 60) as $future ([ "|", "|", "|" ];
 			map(. += " ")
-			| .[0] += ($future | strftime("%a")[0:2])
+			| .[0] += ($future | localday | strftime("%a")[0:2])
 			| .[1] += ":-:"
 			| .[2] += yourDay(yourDayData($future); $future)
 			| map(. += " |")
