@@ -1,0 +1,2 @@
+- multiple "rotations" but announced with a single Zulip message (or an easier way to run with multiple different configs)
+  - we need a separate "It's Your Sunday!" rotation, which is a similar rotation but includes more people and goes the other direction and only shifts every Sunday (which is all expressible in our current config, I think, but not trivially in parallel to an existing config)
